@@ -1,0 +1,103 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "maymont-summer-nights",
+        "name": "Maymont Summer Nights",
+        "type": "concert",
+        "venue": "Maymont",
+        "address": "1700 Hampton St, Richmond, VA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-77.47778, 37.53528]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lewis-ginter-flowers-after-5",
+        "name": "Flowers After 5",
+        "type": "garden",
+        "venue": "Lewis Ginter Botanical Garden",
+        "address": "1800 Lakeside Ave, Richmond, VA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-77.4711, 37.6212]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "browns-island-concerts",
+        "name": "Outdoor Concerts & Festivals",
+        "type": "concert",
+        "venue": "Brown’s Island",
+        "address": "Brown’s Island Way, Richmond, VA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-77.43972, 37.53333]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "outdoor-yoga-browns-island",
+        "name": "Outdoor Yoga",
+        "type": "yoga",
+        "venue": "Brown’s Island",
+        "address": "Brown’s Island Way, Richmond, VA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-77.43972, 37.53333]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "james-river-water-activities",
+        "name": "James River Water Activities",
+        "type": "river",
+        "venue": "James River Park System",
+        "address": "Brown’s Island Access, Richmond, VA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-77.4372, 37.5329]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "richmond-kickers",
+        "name": "Richmond Kickers Soccer Match",
+        "type": "soccer",
+        "venue": "City Stadium",
+        "address": "3201 Maplewood Ave, Richmond, VA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-77.486781, 37.549697]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "flying-squirrels",
+        "name": "Richmond Flying Squirrels Baseball Game",
+        "type": "baseball",
+        "venue": "The Diamond",
+        "address": "3001 N Arthur Ashe Blvd, Richmond, VA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-77.463733, 37.571806]
+      }
+    }
+  ]
+}
