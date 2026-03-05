@@ -92,3 +92,32 @@
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-SHMf0vGv8CwW2qQnI0gZpIbR0ZqTnqkEw3p3LrjvCxo="
 
+<!-- ===== EVENTS PANEL (REPLACEMENT) ===== -->
+<section class="panel" id="eventsPanel">
+  <h2>Events</h2>
+  <div class="form-row">
+    <label for="eventType">Type</label>
+    <select id="eventType">
+      <option value="all" selected>All</option>
+      <option value="concert">Maymont Summer Nights</option>
+      <option value="garden">Lewis Ginter: Flowers After 5</option>
+      <option value="river">James River Water Activities</option>
+      <option value="yoga">Outdoor Yoga (Brown’s Island/Maymont)</option>
+      <option value="soccer">Richmond Kickers (City Stadium)</option>
+      <option value="baseball">Flying Squirrels (The Diamond)</option>
+    </select>
+  </div>
+
+  <button id="loadEventsBtn" type="button">Load/Refresh Events</button>
+  <div id="eventsStatus" class="muted" style="margin-top:6px;"></div>
+  <div id="eventsList" class="list" aria-live="polite"></div>
+</section>
+
+<!-- ===== ROUTING DESTINATION FIELD (REPLACEMENT) ===== -->
+<div class="form-row">
+  <label for="destinationSelect">Destination Event</label>
+  <select id="destinationSelect">
+    <!-- Will be populated by JS; starts with a placeholder -->
+    <option value="" selected>(Load events first)</option>
+  </select>
+</div>
