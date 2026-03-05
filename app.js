@@ -31,12 +31,12 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
   { attribution: "&copy; OpenStreetMap contributors" }
 ).addTo(map);
 
-// Layer groups to toggle
+// // After initializing your Leaflet map
 const layers = {
   events: L.layerGroup().addTo(map),
   stops: L.layerGroup().addTo(map),
   dayRoutes: L.layerGroup().addTo(map),
-  nightRoutes: L.layerGroup(), // off by default
+  nightRoutes: L.layerGroup(),
   trails: L.layerGroup().addTo(map),
   route: L.layerGroup().addTo(map)
 };
