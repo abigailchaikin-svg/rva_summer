@@ -81,6 +81,24 @@ const EVENT_CATALOG = [
 ];
 const eventCache = new Map();
 
+document.getElementById("loadEventsBtn").addEventListener("click", loadEvents);
+[
+  {
+    "id": "flowers_after_5",
+    "label": "Lewis Ginter: Flowers After 5",
+    "type": "garden",
+    "lat": 37.6230,
+    "lon": -77.4729,
+    "schedule": {
+      "recurrence": "weekly",
+      "weekday": "Thursday",
+      "startMonth": "May",
+      "endMonth": "October"
+    },
+    "url": "https://example.com/flowers-after-5"
+  }
+]
+
 async function geocodeVenue(q) {
   const cached = eventCache.get(q);
   if (cached) return cached;
