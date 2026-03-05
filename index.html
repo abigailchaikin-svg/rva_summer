@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Richmond Summer Routes</title>
 
   <!-- Leaflet CSS -->
@@ -15,42 +15,16 @@
 
   <!-- Your CSS -->
   <link rel="stylesheet" href="style.css" />
-
-  <!-- Minimal fallback styles in case style.css is empty -->
-  <style>
-    html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-    .layout { display: grid; grid-template-columns: 360px 1fr; height: 100vh; }
-    .sidebar { padding: 14px; overflow: auto; border-right: 1px solid #e6e6e6; background: #fafafa; }
-    #map { height: 100vh; width: 100%; }
-    .panel { background: #fff; border: 1px solid #e6e6e6; border-radius: 10px; padding: 12px; margin: 10px 0; }
-    .form-row { display: grid; gap: 6px; margin: 10px 0; }
-    label { font-size: 0.92rem; color: #222; }
-    select, input[type="text"], input[type="number"], button { padding: 8px; font-size: 0.95rem; }
-    button { cursor: pointer; }
-    .lead { margin: 0 0 10px; color: #333; }
-    .muted { color: #666; font-size: 0.85rem; }
-    .list { margin-top: 8px; }
-    .status { padding: 10px; border-radius: 8px; font-size: 0.92rem; }
-    .status-info { background: #e7f3ff; border: 1px solid #b8dcff; }
-    .status-ok { background: #eaffea; border: 1px solid #bce8bc; }
-    .status-warn { background: #fff6da; border: 1px solid #ffe29a; }
-    .status-error { background: #ffe9e9; border: 1px solid #ffbcbc; }
-    .events-ul { padding-left: 18px; margin: 0; }
-    .inline-group { display: grid; gap: 8px; }
-    .inline-group label { display: flex; align-items: center; gap: 8px; }
-  </style>
 </head>
 
 <body>
   <div class="layout">
     <aside class="sidebar">
-      <h1 style="margin: 0 0 6px;">Richmond Summer Routes</h1>
+      <h1>Richmond Summer Routes</h1>
       <p class="lead">Plan trips to RVA summer events using bike routes &amp; buses.</p>
 
-      <!-- 1) Event filters -->
       <section class="panel">
-        <h2 style="margin: 0 0 6px;">Events</h2>
-
+        <h2>Events</h2>
         <div class="form-row">
           <label for="eventType">Event Type</label>
           <select id="eventType">
@@ -63,51 +37,26 @@
             <option value="baseball">Flying Squirrels (The Diamond)</option>
           </select>
         </div>
-
         <button id="loadEventsBtn" type="button">Load/Refresh Events</button>
         <div id="eventsList" class="list" aria-live="polite"></div>
       </section>
 
-      <!-- 2) Map layers toggles -->
       <section class="panel">
-        <h2 style="margin: 0 0 6px;">Map Layers</h2>
-
+        <h2>Map Layers</h2>
         <div class="inline-group">
-          <!-- Buses (GRTC) -->
-          <label title="Show bus stops on the map">
-            <input type="checkbox" id="toggleStops" checked />
-            Bus Stops (GRTC)
-          </label>
-
-          <label title="Show daytime bus routes">
-            <input type="checkbox" id="toggleDayRoutes" checked />
-            Bus Routes — Day
-          </label>
-
-          <label title="Show nighttime bus routes">
-            <input type="checkbox" id="toggleNightRoutes" />
-            Bus Routes — Night
-          </label>
-
-          <!-- Bike routes -->
-          <label title="Show bike trails/routes (if a trails GeoJSON exists in /data)">
-            <input type="checkbox" id="toggleTrails" checked />
-            Bike Routes / Trails
-          </label>
+          <label><input type="checkbox" id="toggleStops" checked /> Bus Stops (GRTC)</label>
+          <label><input type="checkbox" id="toggleDayRoutes" checked /> Bus Routes — Day</label>
+          <label><input type="checkbox" id="toggleNightRoutes" /> Bus Routes — Night</label>
+          <label><input type="checkbox" id="toggleTrails" checked /> Bike Routes / Trails</label>
         </div>
-
-        <p class="muted" style="margin: 8px 0 0;">
-          Tip: If bike trails don’t show up, add a GeoJSON file like <code>data/trails.geojson</code>.
-        </p>
       </section>
 
-      <!-- 3) Routing -->
       <section class="panel">
-        <h2 style="margin: 0 0 6px;">Create Your Route</h2>
+        <h2>Create Your Route</h2>
 
         <div class="form-row">
           <label for="startInput">Start (address or place)</label>
-          <input id="startInput" type="text" placeholder="e.g., 900 E Broad St, Richmond VA" autocomplete="street-address" />
+          <input id="startInput" type="text" placeholder="e.g., 900 E Broad St, Richmond VA" />
         </div>
 
         <div class="form-row">
@@ -130,23 +79,20 @@
         <div id="routeSummary" class="list" aria-live="polite"></div>
       </section>
 
-      <footer class="muted" style="margin-top: 10px;">
-        Basemap: OpenStreetMap via Leaflet.
-      </footer>
+      <footer class="muted">Basemap: OpenStreetMap via Leaflet.</footer>
     </aside>
 
-    <!-- Map container required by Leaflet + app.js -->
     <main id="map" role="application" aria-label="Map"></main>
   </div>
 
-  <!-- Leaflet JS (must load BEFORE app.js) -->
+  <!-- Leaflet JS -->
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-SHMf0vGv8CwW2qQnI0gZpIbR0ZqTnqkEw3p3LrjvCxo="
     crossorigin="anonymous"
   ></script>
 
-  <!-- Your app logic -->
-  <script src="app.js" defer></script>
+  <!-- Your app -->
+  <script src="app.js"></script>
 </body>
 </html>
