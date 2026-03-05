@@ -1,0 +1,8 @@
+[
+  { "id": "maymont_concerts", "label": "Maymont Summer Nights", "type": "concert", "lat": 37.5389, "lon": -77.4768 },
+  { "id": "flowers_after_5", "label": "Lewis Ginter: Flowers After 5", "type": "garden", "lat": 37.6230, "lon": -77.4729 },
+  { "id": "james_river_activities", "label": "James River Water Activities (Belle Isle)", "type": "river", "lat": 37.5313, "lon": -77.4458 },
+  { "id": "yoga_browns_island", "label": "Outdoor Yoga (Brown’s Island)", "type": "yoga", "lat": 37.5357, "lon": -77.4419 },
+  { "id": "yoga_maymont", "label": "Outdoor Yoga (Maymont)", "type": "yoga", "lat": 37.5389, "lon": -77.4768 },
+  { "id": "kickers", "label": "Richmond Kickers (City Stadium)", "type": "soccer", "lat": 37.5338, "lon": -77.4774 },
+  { "id": "squirrels", "label": "Flying Squirrels (The Diamond)", "type": "baseball", "lat": 37.5683, "lon": -77.4608 }
