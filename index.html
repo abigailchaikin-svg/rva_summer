@@ -2,22 +2,57 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Richmond Summer Routes</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Leaflet CSS (CDN) -->
+  <!-- Leaflet CSS -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4rYpVLXv1GNbbZKj7Soh3uA2YcDHo9u2/DR+Z8E8Io="
     crossorigin="anonymous"
-   <p class="lead">Plan trips to RVA summer events via bike trails & GRTC.</p>
+  />
 
-      <!-- Event filters -->
+  <!-- Your CSS -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Minimal fallback styles in case style.css is empty -->
+  <style>
+    html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    .layout { display: grid; grid-template-columns: 360px 1fr; height: 100vh; }
+    .sidebar { padding: 14px; overflow: auto; border-right: 1px solid #e6e6e6; background: #fafafa; }
+    #map { height: 100vh; width: 100%; }
+    .panel { background: #fff; border: 1px solid #e6e6e6; border-radius: 10px; padding: 12px; margin: 10px 0; }
+    .form-row { display: grid; gap: 6px; margin: 10px 0; }
+    label { font-size: 0.92rem; color: #222; }
+    select, input[type="text"], input[type="number"], button { padding: 8px; font-size: 0.95rem; }
+    button { cursor: pointer; }
+    .lead { margin: 0 0 10px; color: #333; }
+    .muted { color: #666; font-size: 0.85rem; }
+    .list { margin-top: 8px; }
+    .status { padding: 10px; border-radius: 8px; font-size: 0.92rem; }
+    .status-info { background: #e7f3ff; border: 1px solid #b8dcff; }
+    .status-ok { background: #eaffea; border: 1px solid #bce8bc; }
+    .status-warn { background: #fff6da; border: 1px solid #ffe29a; }
+    .status-error { background: #ffe9e9; border: 1px solid #ffbcbc; }
+    .events-ul { padding-left: 18px; margin: 0; }
+    .inline-group { display: grid; gap: 8px; }
+    .inline-group label { display: flex; align-items: center; gap: 8px; }
+  </style>
+</head>
+
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h1 style="margin: 0 0 6px;">Richmond Summer Routes</h1>
+      <p class="lead">Plan trips to RVA summer events using bike routes &amp; buses.</p>
+
+      <!-- 1) Event filters -->
       <section class="panel">
-        <h2>Events</h2>
+        <h2 style="margin: 0 0 6px;">Events</h2>
+
         <div class="form-row">
-          <label for="eventType">Type</label>
+          <label for="eventType">Event Type</label>
           <select id="eventType">
             <option value="all" selected>All</option>
             <option value="concert">Maymont Summer Nights</option>
@@ -28,26 +63,51 @@
             <option value="baseball">Flying Squirrels (The Diamond)</option>
           </select>
         </div>
-        <button id="loadEventsBtn">Load/Refresh Events</button>
-        <div id="eventsList" class="list"></div>
+
+        <button id="loadEventsBtn" type="button">Load/Refresh Events</button>
+        <div id="eventsList" class="list" aria-live="polite"></div>
       </section>
 
-      <!-- Layers toggles -->
+      <!-- 2) Map layers toggles -->
       <section class="panel">
-        <h2>Map Layers</h2>
-        <label><input type="checkbox" id="toggleStops" checked /> GRTC Stops</label>
-        <label><input type="checkbox" id="toggleDayRoutes" checked /> GRTC Day Routes</label>
-        <label><input type="checkbox" id="toggleNightRoutes" /> GRTC Night Routes</label>
-        <label><input type="checkbox" id="toggleTrails" checked /> Bike Trails</label>
-        <small class="muted">Stops/Routes shown for context; door-to-event legs use live walking/biking directions.</small>
+        <h2 style="margin: 0 0 6px;">Map Layers</h2>
+
+        <div class="inline-group">
+          <!-- Buses (GRTC) -->
+          <label title="Show bus stops on the map">
+            <input type="checkbox" id="toggleStops" checked />
+            Bus Stops (GRTC)
+          </label>
+
+          <label title="Show daytime bus routes">
+            <input type="checkbox" id="toggleDayRoutes" checked />
+            Bus Routes — Day
+          </label>
+
+          <label title="Show nighttime bus routes">
+            <input type="checkbox" id="toggleNightRoutes" />
+            Bus Routes — Night
+          </label>
+
+          <!-- Bike routes -->
+          <label title="Show bike trails/routes (if a trails GeoJSON exists in /data)">
+            <input type="checkbox" id="toggleTrails" checked />
+            Bike Routes / Trails
+          </label>
+        </div>
+
+        <p class="muted" style="margin: 8px 0 0;">
+          Tip: If bike trails don’t show up, add a GeoJSON file like <code>data/trails.geojson</code>.
+        </p>
       </section>
 
-      <!-- Routing -->
+      <!-- 3) Routing -->
       <section class="panel">
-        <h2>Create Your Route</h2>
+        <h2 style="margin: 0 0 6px;">Create Your Route</h2>
+
         <div class="form-row">
           <label for="startInput">Start (address or place)</label>
-          <input id="startInput" type="text" placeholder="e.g., 900 E Broad St, Richmond VA" />
+          <input id="startInput" type="text" placeholder="e.g., 900 E Broad St, Richmond VA" autocomplete="street-address" />
         </div>
 
         <div class="form-row">
@@ -58,66 +118,35 @@
         </div>
 
         <div class="form-row">
-          <label for="modeSelect">Mode</label>
+          <label for="modeSelect">Mode of Transportation</label>
           <select id="modeSelect">
             <option value="foot-walking">Walk</option>
             <option value="cycling-regular" selected>Bike</option>
+            <option value="bus">Bus</option>
           </select>
         </div>
 
-        <details>
-          <summary>Preferences</summary>
-          <label><input type="checkbox" id="preferTrails" checked /> Prefer bike trails</label><br/>
-          <label><input type="checkbox" id="avoidUnpaved" /> Avoid unpaved paths</label><br/>
-          <label>Max walk/bike to bus stop: <input type="number" id="maxAccessMeters" value="800" min="100" step="100" /> meters</label>
-        </details>
-
-        <button id="routeBtn">Build Route</button>
-        <div id="routeSummary" class="list"></div>
+        <button id="routeBtn" type="button">Build Route</button>
+        <div id="routeSummary" class="list" aria-live="polite"></div>
       </section>
 
-      <footer>
-        <small>
-          Basemap: OpenStreetMap via Leaflet. Routing: OpenRouteService. Geocoding: Nominatim. Bike data: Overpass (OSM).
-          GRTC layers: your hosted GeoJSON (reproject EPSG:2284 → EPSG:4326 when importing). [1](https://richmondgov-my.sharepoint.com/personal/abigail_chaikin_rva_gov/Documents/Microsoft%20Copilot%20Chat%20Files/GRTC_baseStops_Jan2021.shp.xml)[2](https://richmondgov-my.sharepoint.com/personal/abigail_chaikin_rva_gov/Documents/Microsoft%20Copilot%20Chat%20Files/GRTC_baseNightRoutes_Jan2021.shp.xml)[3](https://richmondgov-my.sharepoint.com/personal/abigail_chaikin_rva_gov/Documents/Microsoft%20Copilot%20Chat%20Files/GRTCbaseDayRoutes_Jan2021.shp.xml)
-        </small>
+      <footer class="muted" style="margin-top: 10px;">
+        Basemap: OpenStreetMap via Leaflet.
       </footer>
     </aside>
 
-    <main id="map"></main>
+    <!-- Map container required by Leaflet + app.js -->
+    <main id="map" role="application" aria-label="Map"></main>
   </div>
 
-  <!-- Leaflet JS (CDN) -->
+  <!-- Leaflet JS (must load BEFORE app.js) -->
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-SHMf0vGv8CwW2qQnI0gZpIbR0ZqTnqkEw3p3LrjvCxo="
+    crossorigin="anonymous"
+  ></script>
 
-<!-- ===== EVENTS PANEL (REPLACEMENT) ===== -->
-<section class="panel" id="eventsPanel">
-  <h2>Events</h2>
-  <div class="form-row">
-    <label for="eventType">Type</label>
-    <select id="eventType">
-      <option value="all" selected>All</option>
-      <option value="concert">Maymont Summer Nights</option>
-      <option value="garden">Lewis Ginter: Flowers After 5</option>
-      <option value="river">James River Water Activities</option>
-      <option value="yoga">Outdoor Yoga (Brown’s Island/Maymont)</option>
-      <option value="soccer">Richmond Kickers (City Stadium)</option>
-      <option value="baseball">Flying Squirrels (The Diamond)</option>
-    </select>
-  </div>
-
-  <button id="loadEventsBtn" type="button">Load/Refresh Events</button>
-  <div id="eventsStatus" class="muted" style="margin-top:6px;"></div>
-  <div id="eventsList" class="list" aria-live="polite"></div>
-</section>
-
-<!-- ===== ROUTING DESTINATION FIELD (REPLACEMENT) ===== -->
-<div class="form-row">
-  <label for="destinationSelect">Destination Event</label>
-  <select id="destinationSelect">
-    <!-- Will be populated by JS; starts with a placeholder -->
-    <option value="" selected>(Load events first)</option>
-  </select>
-</div>
+  <!-- Your app logic -->
+  <script src="app.js" defer></script>
+</body>
+</html>
