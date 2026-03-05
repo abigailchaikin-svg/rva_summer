@@ -1,121 +1,67 @@
-// ===== EVENTS: reliable loader + destination dropdown (REPLACEMENT) =====
-
-// A small built-in fallback list (used if data/events.json is missing)
-const DEFAULT_EVENTS = [
-  { id: "maymont_concerts", label: "Maymont Summer Nights", type: "concert", lat: 37.5389, lon: -77.4768 },
-  { id: "flowers_after_5", label: "Lewis Ginter: Flowers After 5", type: "garden", lat: 37.6230, lon: -77.4729 },
-  { id: "james_river_activities", label: "James River Water Activities (Belle Isle)", type: "river", lat: 37.5313, lon: -77.4458 },
-  { id: "yoga_browns_island", label: "Outdoor Yoga (Brown’s Island)", type: "yoga", lat: 37.5357, lon: -77.4419 },
-  { id: "yoga_maymont", label: "Outdoor Yoga (Maymont)", type: "yoga", lat: 37.5389, lon: -77.4768 },
-  { id: "kickers", label: "Richmond Kickers (City Stadium)", type: "soccer", lat: 37.5338, lon: -77.4774 },
-  { id: "squirrels", label: "Flying Squirrels (The Diamond)", type: "baseball", lat: 37.5683, lon: -77.4608 }
-];
-
-// Keep loaded events here for other features (like routing)
-let LOADED_EVENTS = [];
-
-// Helper: safe JSON fetch with clear errors
-async function fetchEventsJSON(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Events file not found (${res.status})`);
-  const json = await res.json();
-  if (!Array.isArray(json)) throw new Error("events.json must be an array of events.");
-  return json;
-}
-
-// Render events to map + sidebar + destination dropdown
-function renderEvents(events) {
-  // Clear previous markers
-  if (layers?.events) layers.events.clearLayers();
-
-  const listEl = document.getElementById("eventsList");
-  const destSel = document.getElementById("destinationSelect");
-  const statusEl = document.getElementById("eventsStatus");
-
-  // Reset UI
-  listEl.innerHTML = "";
-  destSel.innerHTML = "";
-  statusEl.textContent = "";
-
-  if (!events.length) {
-    // Show a friendly message and leave a placeholder option
-    statusEl.textContent = "No events match your filter. Try a different type.";
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = "(No events available)";
-    destSel.appendChild(placeholder);
-    return;
-  }
-
-  // Always include a top placeholder so users know to choose
-  const placeholder = document.createElement("option");
-  placeholder.value = "";
-  placeholder.textContent = "(Select a destination event)";
-  destSel.appendChild(placeholder);
-
-  // Render each event
-  events.forEach(ev => {
-    // Sidebar list
-    const li = document.createElement("div");
-    li.textContent = ev.label;
-    listEl.appendChild(li);
-
-    // Map marker
-    if (layers?.events) {
-      const marker = L.marker([ev.lat, ev.lon]).addTo(layers.events);
-      marker.bindPopup(`<strong>${ev.label}</strong>`);
+{
+  "events": [
+    {
+      "id": "maymont-summer-nights",
+      "name": "Maymont Summer Nights",
+      "type": "concert",
+      "venue": "Maymont",
+      "address": "1700 Hampton St, Richmond, VA",
+      "lat": 37.53528,
+      "lng": -77.47778
+    },
+    {
+      "id": "lewis-ginter-flowers-after-5",
+      "name": "Flowers After 5",
+      "type": "garden",
+      "venue": "Lewis Ginter Botanical Garden",
+      "address": "1800 Lakeside Ave, Richmond, VA",
+      "lat": 37.6212,
+      "lng": -77.4711
+    },
+    {
+      "id": "browns-island-concerts",
+      "name": "Outdoor Concerts & Festivals",
+      "type": "concert",
+      "venue": "Brown’s Island",
+      "address": "Brown’s Island Way, Richmond, VA",
+      "lat": 37.53333,
+      "lng": -77.43972
+    },
+    {
+      "id": "outdoor-yoga-browns-island",
+      "name": "Outdoor Yoga",
+      "type": "yoga",
+      "venue": "Brown’s Island",
+      "address": "Brown’s Island Way, Richmond, VA",
+      "lat": 37.53333,
+      "lng": -77.43972
+    },
+    {
+      "id": "james-river-water-activities",
+      "name": "James River Water Activities",
+      "type": "river",
+      "venue": "James River Park System (Brown’s Island Access)",
+      "address": "Brown’s Island Way, Richmond, VA",
+      "lat": 37.5329,
+      "lng": -77.4372
+    },
+    {
+      "id": "richmond-kickers",
+      "name": "Richmond Kickers Soccer Match",
+      "type": "soccer",
+      "venue": "City Stadium",
+      "address": "3201 Maplewood Ave, Richmond, VA",
+      "lat": 37.549697,
+      "lng": -77.486781
+    },
+    {
+      "id": "flying-squirrels",
+      "name": "Richmond Flying Squirrels Baseball Game",
+      "type": "baseball",
+      "venue": "The Diamond",
+      "address": "3001 N Arthur Ashe Blvd, Richmond, VA",
+      "lat": 37.571806,
+      "lng": -77.463733
     }
-
-    // Destination dropdown option (store lat/lon in value as JSON)
-    const opt = document.createElement("option");
-    opt.value = JSON.stringify({ lat: ev.lat, lon: ev.lon, name: ev.label });
-    opt.textContent = ev.label;
-    destSel.appendChild(opt);
-  });
-
-  // Convenience: if there are events, auto-select the first after the placeholder
-  if (destSel.options.length > 1) {
-    destSel.selectedIndex = 1;
-  }
+  ]
 }
-
-// Main loader: pulls from data/events.json, with fallback to DEFAULT_EVENTS
-async function loadEvents() {
-  const typeFilter = document.getElementById("eventType")?.value || "all";
-  const statusEl = document.getElementById("eventsStatus");
-
-  statusEl.textContent = "Loading events…";
-
-  try {
-    // Try external file first (recommended)
-    const all = await fetchEventsJSON("data/events.json");
-    // Filter by type
-    LOADED_EVENTS = all.filter(ev => typeFilter === "all" || ev.type === typeFilter);
-    renderEvents(LOADED_EVENTS);
-    statusEl.textContent = `Loaded ${LOADED_EVENTS.length} event(s).`;
-  } catch (err) {
-    // Fallback: built-in list
-    console.warn("Falling back to DEFAULT_EVENTS:", err.message);
-    LOADED_EVENTS = DEFAULT_EVENTS.filter(ev => typeFilter === "all" || ev.type === typeFilter);
-    renderEvents(LOADED_EVENTS);
-    statusEl.textContent = `Loaded ${LOADED_EVENTS.length} event(s) (fallback).`;
-  }
-}
-
-// Wire up the Events button and filter changes
-document.getElementById("loadEventsBtn")?.addEventListener("click", loadEvents);
-document.getElementById("eventType")?.addEventListener("change", loadEvents);
-
-// OPTIONAL: load events automatically on page init
-// If your app has an init() function, call loadEvents() inside it.
-// Otherwise, you can simply do:
-window.addEventListener("DOMContentLoaded", () => {
-  // Ensure the events layer exists; if you’re using the code I shared earlier,
-  // layers.events is created before this. If not, you can safely remove this check.
-  if (!layers?.events) {
-    // Create the layer group if missing
-    window.layers = window.layers || {};
-    layers.events = L.layerGroup().addTo(map);
-  }
-  loadEvents();
-});
