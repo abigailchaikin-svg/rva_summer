@@ -1,10 +1,6 @@
-/* app.js — Richmond Summer Routes
-   - Leaflet map init
-   - Loads GRTC layers (stops/day/night) + Bike trails (optional file)
-   - Loads events from data/events.json
-   - Populates destination dropdown
-   - Adds "Bus" mode to modeSelect
-*/
+/* =========================================================
+   app.js — Richmond Summer Routes (GTFS GeoJSON + Legend)
+   ========================================================= */
 
 (() => {
   "use strict";
@@ -23,8 +19,13 @@
     el.appendChild(div);
   }
 
+  async function fetchJSON(url) {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText} — ${url}`);
+    return await res.json();
+  }
+
   function haversineMeters(a, b) {
-    // a,b: [lat,lng]
     const R = 6371000;
     const toRad = (d) => (d * Math.PI) / 180;
     const dLat = toRad(b[0] - a[0]);
@@ -42,69 +43,16 @@
     return `${(m / 1000).toFixed(2)} km`;
   }
 
-  async function fetchJSON(url) {
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText} for ${url}`);
-    return await res.json();
-  }
-
-  // Try to guess [lat,lng] from common event formats.
-  function getEventLatLng(evt) {
-    // Supports:
-    //  - evt.lat / evt.lng
-    //  - evt.latitude / evt.longitude
-    //  - evt.location: { lat, lng } or { latitude, longitude }
-    //  - evt.geometry: GeoJSON Point
-    const lat =
-      evt?.lat ??
-      evt?.latitude ??
-      evt?.location?.lat ??
-      evt?.location?.latitude ??
-      evt?.geometry?.coordinates?.[1];
-
-    const lng =
-      evt?.lng ??
-      evt?.lon ??
-      evt?.longitude ??
-      evt?.location?.lng ??
-      evt?.location?.lon ??
-      evt?.location?.longitude ??
-      evt?.geometry?.coordinates?.[0];
-
-    if (typeof lat === "number" && typeof lng === "number") return [lat, lng];
-    // Sometimes numbers are strings:
-    const latN = Number(lat);
-    const lngN = Number(lng);
-    if (!Number.isNaN(latN) && !Number.isNaN(lngN)) return [latN, lngN];
-
-    return null;
-  }
-
-  function getEventLabel(evt) {
-    return (
-      evt?.name ||
-      evt?.title ||
-      evt?.event ||
-      evt?.venue ||
-      "Unnamed event"
-    );
-  }
-
-  function getEventType(evt) {
-    return (evt?.type || evt?.category || evt?.eventType || "other")
-      .toString()
-      .toLowerCase();
-  }
-
   // -----------------------------
-  // DOM Elements (must match index.html)
+  // DOM Elements
   // -----------------------------
   const elEventType = $("eventType");
   const elLoadEventsBtn = $("loadEventsBtn");
   const elEventsList = $("eventsList");
+
+  const elStartInput = $("startInput");
   const elDestinationSelect = $("destinationSelect");
   const elModeSelect = $("modeSelect");
-  const elStartInput = $("startInput");
   const elRouteBtn = $("routeBtn");
   const elRouteSummary = $("routeSummary");
 
@@ -114,15 +62,11 @@
   const cbTrails = $("toggleTrails");
 
   // -----------------------------
-  // Ensure "Bus" is in the Mode dropdown
-  // (Your HTML currently includes Walk + Bike only.) [1](https://github.com/abigailchaikin-svg/rva_summer/blob/main/index.html)
+  // Ensure "Bus" option exists
   // -----------------------------
   function ensureBusModeOption() {
     if (!elModeSelect) return;
-
-    const exists = Array.from(elModeSelect.options).some(
-      (o) => o.value === "bus"
-    );
+    const exists = Array.from(elModeSelect.options).some((o) => o.value === "bus");
     if (!exists) {
       const opt = document.createElement("option");
       opt.value = "bus";
@@ -132,7 +76,7 @@
   }
 
   // -----------------------------
-  // Map init
+  // Leaflet Map + Legend
   // -----------------------------
   let map;
   let layers = {
@@ -143,82 +87,113 @@
     routeLine: null,
     startMarker: null,
     destMarker: null,
+    eventsLayer: null,
   };
 
   function initMap() {
-    // Leaflet should be available as `L` after leaflet.js loads.
-    // Make sure your index.html includes leaflet.js before app.js.
-    map = L.map("map", { zoomControl: true }).setView(
-      [37.5407, -77.4360], // Richmond-ish
-      12
-    );
+    map = L.map("map", { zoomControl: true }).setView([37.5407, -77.436], 12);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors',
+      attribution: "&copy; OpenStreetMap contributors",
     }).addTo(map);
   }
 
+  function addLegend(map) {
+    const legend = L.control({ position: "bottomright" });
+
+    legend.onAdd = function () {
+      const div = L.DomUtil.create("div", "map-legend");
+      div.innerHTML = `
+        <div class="legend-title">Legend</div>
+        <div class="legend-row"><span class="swatch swatch-day"></span> Bus routes (Day)</div>
+        <div class="legend-row"><span class="swatch swatch-night"></span> Bus routes (Night)</div>
+        <div class="legend-row"><span class="swatch swatch-stops"></span> Bus stops</div>
+        <div class="legend-row"><span class="swatch swatch-bike"></span> Bike routes / trails</div>
+        <div class="legend-row"><span class="swatch swatch-events"></span> Event locations</div>
+      `;
+      return div;
+    };
+
+    legend.addTo(map);
+  }
+
   // -----------------------------
-  // Layer loading
+  // GeoJSON loading
   // -----------------------------
-  async function loadGeoJsonLayer(url, styleOrOptions) {
+  async function loadGeoJsonLayer(url, options) {
     const data = await fetchJSON(url);
-    return L.geoJSON(data, styleOrOptions);
+    return L.geoJSON(data, options);
   }
 
   async function loadLayers() {
-    // These file names appear in your repo /data folder. [2](https://github.com/abigailchaikin-svg/rva_summer/tree/main/data)
-    // If a file is missing, we keep going (and show a friendly warning).
     const warnings = [];
 
-    // Stops
+    // ---- GTFS Stops (Points)
     try {
-      layers.stops = await loadGeoJsonLayer("data/day stops.geojson", {
+      layers.stops = await loadGeoJsonLayer("data/grtc_stops.geojson", {
         pointToLayer: (_, latlng) =>
           L.circleMarker(latlng, {
             radius: 3,
             weight: 1,
             color: "#0b3d91",
             fillColor: "#2b7bff",
-            fillOpacity: 0.8,
+            fillOpacity: 0.85,
           }),
       });
       if (cbStops?.checked) layers.stops.addTo(map);
     } catch (e) {
-      warnings.push(`Could not load bus stops: ${e.message}`);
+      warnings.push(`Could not load GTFS stops: ${e.message}`);
+      if (cbStops) {
+        cbStops.checked = false;
+        cbStops.disabled = true;
+        cbStops.parentElement?.setAttribute("title", "Stops layer unavailable");
+      }
     }
 
-    // Day routes
+    // ---- GTFS Day Routes (Lines)
     try {
-      layers.dayRoutes = await loadGeoJsonLayer("data/dayroutes.geojson", {
-        style: { color: "#0b3d91", weight: 2, opacity: 0.8 },
+      layers.dayRoutes = await loadGeoJsonLayer("data/grtc_day_routes.geojson", {
+        style: { color: "#0b3d91", weight: 3, opacity: 0.85 },
+        onEachFeature: (feature, layer) => {
+          const p = feature?.properties || {};
+          const label = `${p.route_short_name || ""} ${p.route_long_name || ""}`.trim();
+          if (label) layer.bindTooltip(label, { sticky: true });
+        },
       });
       if (cbDayRoutes?.checked) layers.dayRoutes.addTo(map);
     } catch (e) {
-      warnings.push(`Could not load day bus routes: ${e.message}`);
+      warnings.push(`Could not load GTFS day routes: ${e.message}`);
+      if (cbDayRoutes) {
+        cbDayRoutes.checked = false;
+        cbDayRoutes.disabled = true;
+        cbDayRoutes.parentElement?.setAttribute("title", "Day routes layer unavailable");
+      }
     }
 
-    // Night routes
+    // ---- GTFS Night Routes (Lines, purple dashed)
     try {
-      layers.nightRoutes = await loadGeoJsonLayer("data/nightroutes.geojson", {
-        style: { color: "#5a189a", weight: 2, opacity: 0.8, dashArray: "4 4" },
+      layers.nightRoutes = await loadGeoJsonLayer("data/grtc_night_routes.geojson", {
+        style: { color: "#6d28d9", weight: 3, opacity: 0.9, dashArray: "6 6" },
+        onEachFeature: (feature, layer) => {
+          const p = feature?.properties || {};
+          const label = `${p.route_short_name || ""} ${p.route_long_name || ""}`.trim();
+          if (label) layer.bindTooltip(`${label} (Night)`, { sticky: true });
+        },
       });
       if (cbNightRoutes?.checked) layers.nightRoutes.addTo(map);
     } catch (e) {
-      warnings.push(`Could not load night bus routes: ${e.message}`);
+      warnings.push(`Could not load GTFS night routes: ${e.message}`);
+      if (cbNightRoutes) {
+        cbNightRoutes.checked = false;
+        cbNightRoutes.disabled = true;
+        cbNightRoutes.parentElement?.setAttribute("title", "Night routes layer unavailable");
+      }
     }
 
-    // Bike trails:
-    // Your index has a "Bike Trails" checkbox id=toggleTrails. [1](https://github.com/abigailchaikin-svg/rva_summer/blob/main/index.html)
-    // If you have a trails GeoJSON, set the filename below.
-    // If you don't, we just leave it off with a note.
-    const trailsCandidates = [
-      "data/trails.geojson",
-      "data/bike_trails.geojson",
-      "data/biketrails.geojson",
-    ];
-
+    // ---- Bike trails (optional)
+    // If you add data/trails.geojson (or similar), it will show.
+    const trailsCandidates = ["data/trails.geojson", "data/bike_trails.geojson", "data/biketrails.geojson"];
     for (const url of trailsCandidates) {
       try {
         layers.trails = await loadGeoJsonLayer(url, {
@@ -231,21 +206,15 @@
     }
     if (layers.trails) {
       if (cbTrails?.checked) layers.trails.addTo(map);
-    } else {
-      // Not fatal—many projects add bike trails later.
-      // We don't spam the UI; just console.
-      console.warn(
-        "Bike trails GeoJSON not found. Add one named trails.geojson (or similar) in /data to enable."
-      );
+    } else if (cbTrails) {
+      // trails are optional; leave checkbox enabled but show console note
+      console.warn("Bike trails file not found. Add data/trails.geojson to enable.");
     }
 
-    if (warnings.length) {
-      console.warn(warnings.join("\n"));
-    }
+    if (warnings.length) console.warn(warnings.join("\n"));
   }
 
   function bindLayerToggles() {
-    // Treat these three as "Bus" layers (stops + routes). [1](https://github.com/abigailchaikin-svg/rva_summer/blob/main/index.html)
     cbStops?.addEventListener("change", () => {
       if (!layers.stops) return;
       cbStops.checked ? layers.stops.addTo(map) : map.removeLayer(layers.stops);
@@ -253,29 +222,22 @@
 
     cbDayRoutes?.addEventListener("change", () => {
       if (!layers.dayRoutes) return;
-      cbDayRoutes.checked
-        ? layers.dayRoutes.addTo(map)
-        : map.removeLayer(layers.dayRoutes);
+      cbDayRoutes.checked ? layers.dayRoutes.addTo(map) : map.removeLayer(layers.dayRoutes);
     });
 
     cbNightRoutes?.addEventListener("change", () => {
       if (!layers.nightRoutes) return;
-      cbNightRoutes.checked
-        ? layers.nightRoutes.addTo(map)
-        : map.removeLayer(layers.nightRoutes);
+      cbNightRoutes.checked ? layers.nightRoutes.addTo(map) : map.removeLayer(layers.nightRoutes);
     });
 
-    // Bike routes checkbox. [1](https://github.com/abigailchaikin-svg/rva_summer/blob/main/index.html)
     cbTrails?.addEventListener("change", () => {
       if (!layers.trails) return;
-      cbTrails.checked
-        ? layers.trails.addTo(map)
-        : map.removeLayer(layers.trails);
+      cbTrails.checked ? layers.trails.addTo(map) : map.removeLayer(layers.trails);
     });
   }
 
   // -----------------------------
-  // Events loading + UI
+  // Events (supports events.geojson OR events.json)
   // -----------------------------
   let allEvents = [];
 
@@ -288,26 +250,23 @@
     elDestinationSelect.appendChild(opt);
   }
 
-  function populateDestinations(filteredEvents) {
-    clearDestinations();
-    if (!elDestinationSelect) return;
+  function getEventType(evt) {
+    return (evt?.type || evt?.category || evt?.eventType || "other").toString().toLowerCase();
+  }
 
-    for (const evt of filteredEvents) {
-      const ll = getEventLatLng(evt);
-      // Only include events that we can map
-      if (!ll) continue;
+  function getEventLabel(evt) {
+    return evt?.name || evt?.title || evt?.event || evt?.venue || "Unnamed event";
+  }
 
-      const opt = document.createElement("option");
-      opt.value = evt.id ?? evt.slug ?? getEventLabel(evt);
-      opt.textContent = getEventLabel(evt);
-
-      // store lat/lng on the option for easy retrieval
-      opt.dataset.lat = ll[0];
-      opt.dataset.lng = ll[1];
-      opt.dataset.type = getEventType(evt);
-
-      elDestinationSelect.appendChild(opt);
-    }
+  function getEventLatLng(evt) {
+    // Works with JSON or GeoJSON-normalized objects
+    const lat = evt?.lat ?? evt?.latitude ?? evt?.location?.lat ?? evt?.location?.latitude;
+    const lng = evt?.lng ?? evt?.lon ?? evt?.longitude ?? evt?.location?.lng ?? evt?.location?.lon ?? evt?.location?.longitude;
+    if (typeof lat === "number" && typeof lng === "number") return [lat, lng];
+    const latN = Number(lat);
+    const lngN = Number(lng);
+    if (!Number.isNaN(latN) && !Number.isNaN(lngN)) return [latN, lngN];
+    return null;
   }
 
   function renderEventsList(filteredEvents) {
@@ -323,64 +282,143 @@
     ul.className = "events-ul";
 
     for (const evt of filteredEvents) {
-      const li = document.createElement("li");
-      const label = getEventLabel(evt);
       const ll = getEventLatLng(evt);
-      li.textContent = ll ? label : `${label} (missing coordinates)`;
+      const li = document.createElement("li");
+      li.textContent = ll ? getEventLabel(evt) : `${getEventLabel(evt)} (missing coordinates)`;
       ul.appendChild(li);
     }
 
     elEventsList.appendChild(ul);
   }
 
+  function populateDestinations(filteredEvents) {
+    clearDestinations();
+    if (!elDestinationSelect) return;
+
+    for (const evt of filteredEvents) {
+      const ll = getEventLatLng(evt);
+      if (!ll) continue;
+
+      const opt = document.createElement("option");
+      opt.value = evt.id ?? evt.slug ?? getEventLabel(evt);
+      opt.textContent = getEventLabel(evt);
+      opt.dataset.lat = ll[0];
+      opt.dataset.lng = ll[1];
+      opt.dataset.type = getEventType(evt);
+      elDestinationSelect.appendChild(opt);
+    }
+  }
+
+  function drawEventsLayer(filteredEvents) {
+    if (layers.eventsLayer) {
+      map.removeLayer(layers.eventsLayer);
+      layers.eventsLayer = null;
+    }
+
+    // Convert to GeoJSON on the fly for map display
+    const feats = filteredEvents
+      .map((evt) => {
+        const ll = getEventLatLng(evt);
+        if (!ll) return null;
+        return {
+          type: "Feature",
+          properties: {
+            id: evt.id ?? evt.slug ?? getEventLabel(evt),
+            name: getEventLabel(evt),
+            type: getEventType(evt),
+            venue: evt.venue || "",
+            address: evt.address || "",
+          },
+          geometry: {
+            type: "Point",
+            coordinates: [Number(ll[1]), Number(ll[0])], // [lng, lat]
+          },
+        };
+      })
+      .filter(Boolean);
+
+    layers.eventsLayer = L.geoJSON(
+      { type: "FeatureCollection", features: feats },
+      {
+        pointToLayer: (_, latlng) =>
+          L.circleMarker(latlng, {
+            radius: 6,
+            weight: 2,
+            color: "#b45309",
+            fillColor: "#f59e0b",
+            fillOpacity: 0.9,
+          }),
+        onEachFeature: (feature, layer) => {
+          const p = feature.properties || {};
+          const html = `
+            <strong>${p.name || "Event"}</strong><br/>
+            <span class="muted">${p.venue || ""}</span><br/>
+            <span class="muted">${p.address || ""}</span>
+          `;
+          layer.bindPopup(html);
+        },
+      }
+    ).addTo(map);
+  }
+
   function applyEventFilterAndUpdateUI() {
     const filter = (elEventType?.value || "all").toLowerCase();
-
-    const filtered =
-      filter === "all"
-        ? allEvents
-        : allEvents.filter((e) => getEventType(e) === filter);
+    const filtered = filter === "all" ? allEvents : allEvents.filter((e) => getEventType(e) === filter);
 
     populateDestinations(filtered);
     renderEventsList(filtered);
+    drawEventsLayer(filtered);
   }
 
   async function loadEvents() {
     setStatus(elEventsList, "Loading events…", "info");
+    clearDestinations();
+
+    // Try GeoJSON first, then JSON
     try {
-      // This file is present in your /data directory. [2](https://github.com/abigailchaikin-svg/rva_summer/tree/main/data)
+      const geo = await fetchJSON("data/events.geojson");
+      const feats = geo?.features || [];
+      allEvents = feats.map((f) => {
+        const p = f.properties || {};
+        const coords = f.geometry?.coordinates || [];
+        const lng = Number(coords[0]);
+        const lat = Number(coords[1]);
+        return {
+          id: p.id,
+          name: p.name,
+          type: p.type,
+          venue: p.venue,
+          address: p.address,
+          lat,
+          lng,
+        };
+      });
+
+      if (!allEvents.length) throw new Error("events.geojson loaded but contained no features.");
+      applyEventFilterAndUpdateUI();
+      setStatus(elEventsList, `Loaded ${allEvents.length} events.`, "ok");
+      return;
+    } catch (eGeo) {
+      console.warn("events.geojson not used:", eGeo.message);
+    }
+
+    // Fallback to JSON
+    try {
       const data = await fetchJSON("data/events.json");
-
-      // Accept either: {events:[...]} or a plain array [...]
       allEvents = Array.isArray(data) ? data : data.events ?? [];
-
-      if (!Array.isArray(allEvents) || allEvents.length === 0) {
-        setStatus(
-          elEventsList,
-          "Events file loaded, but it contains no events.",
-          "warn"
-        );
-        clearDestinations();
-        return;
-      }
-
+      if (!allEvents.length) throw new Error("events.json loaded but contained no events.");
       applyEventFilterAndUpdateUI();
       setStatus(elEventsList, `Loaded ${allEvents.length} events.`, "ok");
     } catch (e) {
       console.error(e);
-      setStatus(
-        elEventsList,
-        `Could not load events.json. Check the file path and JSON format. (${e.message})`,
-        "error"
-      );
+      setStatus(elEventsList, `Could not load events (events.geojson or events.json). ${e.message}`, "error");
       clearDestinations();
     }
   }
 
   // -----------------------------
-  // Simple routing (no external API key needed)
-  // - Walk/Bike: draws a straight line + distance
-  // - Bus: shows bus layers and draws straight line + note
+  // Routing (simple preview)
+  // Walk/Bike/Bus: straight-line preview + markers
   // -----------------------------
   function clearRouteGraphics() {
     if (layers.routeLine) map.removeLayer(layers.routeLine);
@@ -392,15 +430,9 @@
   }
 
   async function geocodeStart(query) {
-    // Nominatim (OpenStreetMap) — no key required, but be polite.
-    // If you later host production traffic, you should use your own geocoder.
-    const url =
-      "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" +
-      encodeURIComponent(query);
-
-    const res = await fetch(url, {
-      headers: { "Accept-Language": "en" },
-    });
+    // Nominatim geocoder (public OSM geocoder). For production, use a key-based geocoder.
+    const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(query);
+    const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) throw new Error(`Geocoding failed (${res.status})`);
     const arr = await res.json();
     if (!arr.length) return null;
@@ -435,23 +467,16 @@
       setStatus(elRouteSummary, `Start lookup failed: ${e.message}`, "error");
       return;
     }
-
     if (!startLL) {
-      setStatus(
-        elRouteSummary,
-        "Could not find that start location. Try a more specific address.",
-        "warn"
-      );
+      setStatus(elRouteSummary, "Could not find that start location. Try a more specific address.", "warn");
       return;
     }
 
     const destLL = [destLat, destLng];
 
-    // Markers
     layers.startMarker = L.marker(startLL).addTo(map).bindPopup("Start");
     layers.destMarker = L.marker(destLL).addTo(map).bindPopup("Destination");
 
-    // Simple line
     layers.routeLine = L.polyline([startLL, destLL], {
       color: "#ff6b35",
       weight: 4,
@@ -467,27 +492,26 @@
     if (mode === "cycling-regular") modeLabel = "Bike";
     if (mode === "bus") modeLabel = "Bus";
 
-    // For "Bus" mode: ensure bus layers are visible
+    // If bus mode, ensure stops + day routes visible
     if (mode === "bus") {
-      cbStops && (cbStops.checked = true);
-      cbDayRoutes && (cbDayRoutes.checked = true);
+      if (cbStops && !cbStops.disabled) cbStops.checked = true;
+      if (cbDayRoutes && !cbDayRoutes.disabled) cbDayRoutes.checked = true;
       if (layers.stops) layers.stops.addTo(map);
       if (layers.dayRoutes) layers.dayRoutes.addTo(map);
-      // night routes optional
     }
 
     setStatus(
       elRouteSummary,
       `${modeLabel} route (straight-line preview): ${formatDistance(dist)}.` +
         (mode === "bus"
-          ? " Bus routing logic is not included in this simple preview, but stops/routes are shown on the map."
+          ? " Bus geometry is displayed via GTFS layers; this preview does not compute transfers."
           : ""),
       "ok"
     );
   }
 
   // -----------------------------
-  // Boot
+  // UI Wiring + Boot
   // -----------------------------
   function wireUI() {
     ensureBusModeOption();
@@ -496,7 +520,6 @@
     elEventType?.addEventListener("change", applyEventFilterAndUpdateUI);
     elRouteBtn?.addEventListener("click", buildRoute);
 
-    // When user picks a destination, pan there
     elDestinationSelect?.addEventListener("change", () => {
       const opt = elDestinationSelect.selectedOptions?.[0];
       const lat = opt?.dataset?.lat ? Number(opt.dataset.lat) : NaN;
@@ -507,23 +530,18 @@
     });
   }
 
-  // Wait for DOM
   window.addEventListener("DOMContentLoaded", async () => {
     try {
       wireUI();
       initMap();
+      addLegend(map);
       bindLayerToggles();
-      await loadLayers();
 
-      // auto-load events on startup (so dropdown is not empty)
-      await loadEvents();
+      await loadLayers();
+      await loadEvents(); // auto-load so dropdown isn’t empty
     } catch (e) {
       console.error(e);
-      setStatus(
-        elEventsList,
-        "Startup error. Open DevTools Console for details.",
-        "error"
-      );
+      setStatus(elEventsList, "Startup error. Open DevTools Console for details.", "error");
     }
   });
 })();
