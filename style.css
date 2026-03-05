@@ -1,27 +1,21 @@
 /* =========================================================
-   Global reset & base typography
+   style.css — Richmond Summer Routes (Legend + Clean UI)
    ========================================================= */
 
+/* Global reset */
 *,
 *::before,
-*::after {
-  box-sizing: border-box;
-}
+*::after { box-sizing: border-box; }
 
-html,
-body {
+html, body {
   height: 100%;
   margin: 0;
-  padding: 0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   color: #1f2937;
-  background-color: #f3f4f6;
+  background: #f3f4f6;
 }
 
-/* =========================================================
-   Layout
-   ========================================================= */
-
+/* Layout */
 .layout {
   display: grid;
   grid-template-columns: 360px 1fr;
@@ -29,58 +23,33 @@ body {
 }
 
 .sidebar {
-  background-color: #ffffff;
+  background: #fff;
   border-right: 1px solid #e5e7eb;
   padding: 14px;
   overflow-y: auto;
 }
 
 #map {
-  height: 100vh;
   width: 100%;
+  height: 100vh; /* critical for Leaflet */
 }
 
-/* =========================================================
-   Headings & text
-   ========================================================= */
+/* Headings & text */
+h1 { font-size: 1.25rem; margin: 0 0 6px; }
+h2 { font-size: 1.05rem; margin: 0 0 8px; }
+.lead { font-size: 0.95rem; color: #4b5563; margin: 0 0 12px; }
+.muted { font-size: 0.85rem; color: #6b7280; }
 
-h1 {
-  font-size: 1.25rem;
-  margin: 0 0 6px;
-}
-
-h2 {
-  font-size: 1.05rem;
-  margin: 0 0 8px;
-}
-
-.lead {
-  font-size: 0.95rem;
-  color: #4b5563;
-  margin-bottom: 12px;
-}
-
-.muted {
-  font-size: 0.8rem;
-  color: #6b7280;
-}
-
-/* =========================================================
-   Panels / sections
-   ========================================================= */
-
+/* Panels */
 .panel {
-  background: #ffffff;
+  background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   padding: 12px;
   margin-bottom: 12px;
 }
 
-/* =========================================================
-   Forms
-   ========================================================= */
-
+/* Forms */
 .form-row {
   display: flex;
   flex-direction: column;
@@ -88,151 +57,135 @@ h2 {
   margin-bottom: 10px;
 }
 
-label {
-  font-size: 0.85rem;
-  font-weight: 500;
-}
+label { font-size: 0.85rem; font-weight: 600; }
 
 input[type="text"],
 input[type="number"],
 select {
   width: 100%;
   padding: 8px 10px;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid #d1d5db;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
-input:focus,
-select:focus {
+input:focus, select:focus {
   outline: none;
   border-color: #2563eb;
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
 button {
-  padding: 8px 12px;
-  border-radius: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
   border: none;
-  font-size: 0.9rem;
-  font-weight: 600;
-  background-color: #2563eb;
-  color: white;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
   cursor: pointer;
 }
+button:hover { background: #1d4ed8; }
+button:active { background: #1e40af; }
 
-button:hover {
-  background-color: #1d4ed8;
-}
-
-button:active {
-  background-color: #1e40af;
-}
-
-/* =========================================================
-   Checkbox groups (Map Layers)
-   ========================================================= */
-
+/* Checkbox group */
 .inline-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-
 .inline-group label {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-weight: 400;
+  font-weight: 500;
   cursor: pointer;
 }
-
 .inline-group input[type="checkbox"] {
   transform: scale(1.1);
 }
 
-/* =========================================================
-   Status / messages
-   ========================================================= */
-
-.list {
-  margin-top: 8px;
-}
+/* Status messages */
+.list { margin-top: 8px; }
 
 .status {
-  padding: 8px 10px;
-  border-radius: 8px;
-  font-size: 0.85rem;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.9rem;
 }
+.status-info { background: #e0f2fe; border: 1px solid #7dd3fc; }
+.status-ok { background: #dcfce7; border: 1px solid #86efac; }
+.status-warn { background: #fef3c7; border: 1px solid #fde68a; }
+.status-error { background: #fee2e2; border: 1px solid #fca5a5; }
 
-.status-info {
-  background-color: #e0f2fe;
-  border: 1px solid #7dd3fc;
-}
+/* Events list */
+.events-ul { margin: 0; padding-left: 18px; }
+.events-ul li { font-size: 0.9rem; margin-bottom: 5px; }
 
-.status-ok {
-  background-color: #dcfce7;
-  border: 1px solid #86efac;
-}
-
-.status-warn {
-  background-color: #fef3c7;
-  border: 1px solid #fde68a;
-}
-
-.status-error {
-  background-color: #fee2e2;
-  border: 1px solid #fca5a5;
-}
+/* Leaflet tweaks */
+.leaflet-container { font-family: inherit; }
+.leaflet-control-zoom a { text-decoration: none; }
+.leaflet-popup-content { font-size: 0.9rem; }
 
 /* =========================================================
-   Events list
+   Map Legend
    ========================================================= */
-
-.events-ul {
-  margin: 0;
-  padding-left: 18px;
+.map-legend {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: #111827;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  line-height: 1.25;
 }
 
-.events-ul li {
-  font-size: 0.85rem;
-  margin-bottom: 4px;
+.map-legend .legend-title {
+  font-weight: 800;
+  margin-bottom: 8px;
 }
 
-/* =========================================================
-   Leaflet overrides (important)
-   ========================================================= */
-
-.leaflet-container {
-  font-family: inherit;
+.map-legend .legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
 }
 
-.leaflet-popup-content {
-  font-size: 0.85rem;
+.map-legend .swatch {
+  width: 18px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+  border: 1px solid rgba(0,0,0,0.15);
 }
 
-.leaflet-control-zoom a {
-  text-decoration: none;
+.map-legend .swatch-day { background: #0b3d91; }
+.map-legend .swatch-night {
+  background: repeating-linear-gradient(
+    90deg,
+    #6d28d9 0,
+    #6d28d9 6px,
+    #ffffff 6px,
+    #ffffff 10px
+  );
 }
+.map-legend .swatch-stops { background: #2b7bff; }
+.map-legend .swatch-bike { background: #2d6a4f; }
+.map-legend .swatch-events { background: #f59e0b; }
 
-/* =========================================================
-   Responsive (mobile-friendly)
-   ========================================================= */
-
+/* Responsive */
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;
   }
-
   .sidebar {
-    height: auto;
     max-height: 45vh;
     border-right: none;
     border-bottom: 1px solid #e5e7eb;
   }
-
-  #map {
-    height: 55vh;
-  }
+  #map { height: 55vh; }
 }
